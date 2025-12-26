@@ -72,8 +72,12 @@ application-local.yml
 application-local.yaml
 application-local.properties
 
+
+e2e/xblog/xblog/themes
+e2e/xblog/xblog/logs
+e2e/xblog/xblog/indices
+ui/packages/components/**.mjs
 ### Zip file for test
-!application/src/test/resources/themes/**
 !application/src/test/resources/themes/*.zip
 !application/src/main/resources/themes/*.zip
 application/src/main/resources/console/
