@@ -1,0 +1,70 @@
+services:
+  gordon-blog:
+    build:
+      context: .
+    container_name: gordon-blog
+    restart: unless-stopped
+    depends_on:
+      gordon-db:
+        condition: service_healthy
+    networks:
+      - gordon-net
+    ports:
+      - "${EXTERNAL_PORT:-8103}:8090"
+    volumes:
+      - ./xblog:/application/xblog
+    environment:
+      JVM_OPTS: "${JVM_OPTS:--Xmx256m -Xms256m}"
+      TZ: "Asia/Shanghai"
+    command:
+      - --spring.r2dbc.url=r2dbc:pool:postgresql://gordon-db/${POSTGRES_DB}
+      - --spring.r2dbc.username=${POSTGRES_USER}
+      - --spring.r2dbc.password=${POSTGRES_PASSWORD}
+      - --spring.sql.init.platform=postgresql
+      - --halo.external-url=http://localhost:${EXTERNAL_PORT:-8103}/
+      - --halo.work-dir=/application/xblog
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/actuator/health/readiness"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 128M
+
+  gordon-db:
+    image: postgres:15-alpine
+    container_name: gordon-db
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-15432}:5432"
+    networks:
+      - gordon-net
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gordon}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+networks:
+  gordon-net:
+    name: gordon-net
+    driver: bridge

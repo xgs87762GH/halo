@@ -128,6 +128,7 @@ tasks.register('copyUiDist', Copy) {
 
 tasks.named('processResources', ProcessResources) {
     dependsOn tasks.named('copyUiDist')
+    dependsOn tasks.named('downloadPluginPresets')
 }
 
 tasks.named('build') {

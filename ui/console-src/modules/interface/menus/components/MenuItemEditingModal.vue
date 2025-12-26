@@ -308,7 +308,7 @@ onMounted(() => {
                 )
               "
               :label="selectedRef.label"
-              :type="selectedRef.inputType"
+              type="text"
               validation="required"
             />
 

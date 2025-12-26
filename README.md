@@ -33,13 +33,16 @@
 docker run -d --name halo -p 8090:8090 -v ~/.halo2:/root/.halo2 halohub/halo:2.21
 ```
 
-或者点击下方按钮使用 [Gitpod](https://gitpod.io/) 或 [ClawCloud Run](https://template.us-west-1.run.claw.cloud/deploy?templateName=halo) 启动一个体验环境：
+或者点击下方按钮使用 [Gitpod](https://gitpod.io/)
+或 [ClawCloud Run](https://template.us-west-1.run.claw.cloud/deploy?templateName=halo) 启动一个体验环境：
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/halo-sigs/gitpod-demo)
 
 [![Run on ClawCloud](https://raw.githubusercontent.com/ClawCloud/Run-Template/refs/heads/main/Run-on-ClawCloud.svg)](https://template.us-west-1.run.claw.cloud/deploy?templateName=halo)
 
-**以上方式仅作为体验使用，推荐使用开源 Linux 服务器运维管理面板 [1Panel](https://github.com/1Panel-dev/1Panel) 进行部署（[查看文档](https://docs.halo.run/getting-started/install/1panel)），轻松搞定反向代理、SSL 证书及升级备份任务。更多部署方式，请[查看文档](https://docs.halo.run/category/%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97)。**
+**以上方式仅作为体验使用，推荐使用开源 Linux 服务器运维管理面板 [1Panel](https://github.com/1Panel-dev/1Panel)
+进行部署（[查看文档](https://docs.halo.run/getting-started/install/1panel)），轻松搞定反向代理、SSL
+证书及升级备份任务。更多部署方式，请[查看文档](https://docs.halo.run/category/%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97)。**
 
 ## 在线体验
 
@@ -50,11 +53,13 @@ docker run -d --name halo -p 8090:8090 -v ~/.halo2:/root/.halo2 halohub/halo:2.2
 
 ## 专业版
 
-相比于社区版，Halo 专业版为用户提供了大量增强功能及技术支持服务，增强功能包括短信验证码注册登录、全站私有化、LDAP 登录、三方账号登录及自定义 LOGO 等。 [点击查看专业版详细介绍](https://www.lxware.cn/halo)。
+相比于社区版，Halo 专业版为用户提供了大量增强功能及技术支持服务，增强功能包括短信验证码注册登录、全站私有化、LDAP
+登录、三方账号登录及自定义 LOGO 等。 [点击查看专业版详细介绍](https://www.lxware.cn/halo)。
 
 ## 生态
 
-可访问 [官方应用市场](https://www.halo.run/store/apps) 或 [awesome-halo 仓库](https://github.com/halo-sigs/awesome-halo) 查看适用于 Halo 2.x 的主题和插件。
+可访问 [官方应用市场](https://www.halo.run/store/apps) 或 [awesome-halo 仓库](https://github.com/halo-sigs/awesome-halo)
+查看适用于 Halo 2.x 的主题和插件。
 
 ## 许可证
 
@@ -81,3 +86,11 @@ Halo 使用 GPL-v3.0 协议开源，请遵守开源协议。
 ## 状态
 
 ![Repobeats analytics](https://repobeats.axiom.co/api/embed/ad008b2151c22e7cf734d2688befaa795d593b95.svg "Repobeats analytics image")
+
+项目版本
+
+| 版本            | 说明   | 下载 |
+|---------------|------|----|
+| Java 21       | Java | -  |
+| Node v20.19.0 | Node | -  |
+| pnpm v10.12.4 | pnpm | -  |
