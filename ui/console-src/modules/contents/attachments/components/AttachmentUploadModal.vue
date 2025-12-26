@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { attachmentPolicyLabels } from "@/constants/labels";
 import type { PolicyTemplate } from "@halo-dev/api-client";
 import {
   IconAddCircle,
@@ -6,10 +7,8 @@ import {
   VDropdown,
   VDropdownItem,
   VModal,
-  VTabItem,
-  VTabs,
 } from "@halo-dev/components";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useFetchAttachmentGroup } from "../composables/use-attachment-group";
 import {
   useFetchAttachmentPolicy,
@@ -19,20 +18,17 @@ import AttachmentGroupBadge from "./AttachmentGroupBadge.vue";
 import AttachmentGroupEditingModal from "./AttachmentGroupEditingModal.vue";
 import AttachmentPolicyBadge from "./AttachmentPolicyBadge.vue";
 import AttachmentPolicyEditingModal from "./AttachmentPolicyEditingModal.vue";
-import UploadFromUrl from "./UploadFromUrl.vue";
+import AttachmentUploadArea from "./AttachmentUploadArea.vue";
 
-const { initialPolicyName, initialGroupName } = defineProps<{
-  initialPolicyName?: string;
-  initialGroupName?: string;
-}>();
+const { initialPolicyName = undefined, initialGroupName = undefined } =
+  defineProps<{
+    initialPolicyName?: string;
+    initialGroupName?: string;
+  }>();
 
 const emit = defineEmits<{
   (event: "close"): void;
 }>();
-
-const { groups, handleFetchGroups } = useFetchAttachmentGroup();
-const { policies, handleFetchPolicies } = useFetchAttachmentPolicy();
-const { policyTemplates } = useFetchAttachmentPolicyTemplate();
 
 const modal = ref<InstanceType<typeof VModal> | null>(null);
 const selectedGroupName = ref(initialGroupName || "");
@@ -41,10 +37,23 @@ const policyEditingModal = ref(false);
 const groupEditingModal = ref(false);
 const policyTemplateNameToCreate = ref();
 
+const { groups, handleFetchGroups } = useFetchAttachmentGroup();
+const { data: policyTemplates } = useFetchAttachmentPolicyTemplate();
+const { data: allPolicies, refetch: handleFetchPolicies } =
+  useFetchAttachmentPolicy();
+
+const policies = computed(() => {
+  return allPolicies.value?.filter((policy) => {
+    return policy.metadata.labels?.[attachmentPolicyLabels.HIDDEN] !== "true";
+  });
+});
+
 onMounted(() => {
-  if (!selectedPolicyName.value) {
-    selectedPolicyName.value = policies.value?.[0].metadata.name;
-  }
+  const initialPolicy = policies.value?.find(
+    (p) => p.metadata.name === initialPolicyName
+  );
+  selectedPolicyName.value =
+    initialPolicy?.metadata.name || policies.value?.[0]?.metadata.name;
 });
 
 const handleOpenCreateNewPolicyModal = async (
@@ -69,8 +78,6 @@ const onGroupEditingModalClose = async () => {
   await handleFetchGroups();
   groupEditingModal.value = false;
 };
-
-const activeTab = ref("upload");
 </script>
 
 <template>
@@ -110,8 +117,8 @@ const activeTab = ref("upload");
           </AttachmentPolicyBadge>
           <template #popper>
             <VDropdownItem
-              v-for="(policyTemplate, index) in policyTemplates"
-              :key="index"
+              v-for="policyTemplate in policyTemplates"
+              :key="policyTemplate.metadata.name"
               @click="handleOpenCreateNewPolicyModal(policyTemplate)"
             >
               {{ policyTemplate.spec?.displayName }}
@@ -167,40 +174,11 @@ const activeTab = ref("upload");
       </div>
 
       <div class="mb-3">
-        <VTabs v-model:active-id="activeTab" type="outline">
-          <VTabItem
-            id="upload"
-            :label="
-              $t('core.attachment.upload_modal.upload_options.local_upload')
-            "
-          >
-            <UppyUpload
-              endpoint="/apis/api.console.halo.run/v1alpha1/attachments/upload"
-              :disabled="!selectedPolicyName"
-              :meta="{
-                policyName: selectedPolicyName,
-                groupName: selectedGroupName,
-              }"
-              width="100%"
-              :allowed-meta-fields="['policyName', 'groupName']"
-              :note="
-                selectedPolicyName
-                  ? ''
-                  : $t('core.attachment.upload_modal.filters.policy.not_select')
-              "
-              :done-button-handler="() => modal?.close()"
-            />
-          </VTabItem>
-          <VTabItem
-            id="download"
-            :label="$t('core.attachment.upload_modal.upload_options.download')"
-          >
-            <UploadFromUrl
-              :policy-name="selectedPolicyName"
-              :group-name="selectedGroupName"
-            />
-          </VTabItem>
-        </VTabs>
+        <AttachmentUploadArea
+          :policy-name="selectedPolicyName"
+          :group-name="selectedGroupName"
+          @done="modal?.close()"
+        />
       </div>
     </div>
   </VModal>

@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "Halo",
-    "version": "2.21.10-SNAPSHOT"
+    "version": "2.22.0-SNAPSHOT"
   },
   "servers": [
     {
@@ -6679,12 +6679,32 @@
             }
           },
           {
-            "description": "The size of the thumbnail,available values are s,m,l,xl",
+            "description": "The size of the thumbnail",
             "in": "query",
             "name": "size",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "S",
+                "M",
+                "L",
+                "XL"
+              ]
+            }
+          },
+          {
+            "description": "The width of the thumbnail, if \u0027size\u0027 is not provided, this parameter will be used to determine the size",
+            "in": "query",
+            "name": "width",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                "400",
+                "800",
+                "1200",
+                "1600"
+              ]
             }
           }
         ],
@@ -7405,6 +7425,36 @@
         },
         "tags": [
           "UserV1alpha1Console"
+        ]
+      }
+    },
+    "/apis/console.api.storage.halo.run/v1alpha1/attachments/-/upload": {
+      "post": {
+        "description": "Upload attachment endpoint for console.",
+        "operationId": "uploadAttachmentForConsole",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attachment"
+                }
+              }
+            },
+            "description": "default response"
+          }
+        },
+        "tags": [
+          "AttachmentV1alpha1Console"
         ]
       }
     },
@@ -15333,7 +15383,8 @@
         ]
       },
       "post": {
-        "description": "Create attachment for the given post.",
+        "deprecated": true,
+        "description": "Create attachment for the given post. Deprecated in favor of /attachments/-/upload.",
         "operationId": "CreateAttachmentForPost",
         "parameters": [
           {
@@ -15374,16 +15425,15 @@
     "/apis/uc.api.storage.halo.run/v1alpha1/attachments/-/upload": {
       "post": {
         "description": "Upload attachment to user center storage.",
-        "operationId": "UploadUcAttachment",
+        "operationId": "UploadAttachmentForUc",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/UcUploadRequest"
+                "$ref": "#/components/schemas/UploadForm"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "default": {
@@ -15404,7 +15454,8 @@
     },
     "/apis/uc.api.storage.halo.run/v1alpha1/attachments/-/upload-from-url": {
       "post": {
-        "description": "Upload attachment from the given URL.",
+        "deprecated": true,
+        "description": "Upload attachment from the given URL.\nDeprecated in favor of /attachments/-/upload.",
         "operationId": "ExternalTransferAttachment_1",
         "parameters": [
           {
@@ -16912,6 +16963,11 @@
         }
       },
       "Content": {
+        "required": [
+          "content",
+          "raw",
+          "rawType"
+        ],
         "type": "object",
         "properties": {
           "content": {
@@ -16926,6 +16982,11 @@
         }
       },
       "ContentUpdateParam": {
+        "required": [
+          "content",
+          "raw",
+          "rawType"
+        ],
         "type": "object",
         "properties": {
           "content": {
@@ -17238,27 +17299,27 @@
         "properties": {
           "approvedComments": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
           "comments": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
           "posts": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
           "upvotes": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
           "users": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
           "visits": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           }
         }
       },
@@ -17453,6 +17514,7 @@
         "type": "object",
         "properties": {
           "email": {
+            "minLength": 1,
             "type": "string"
           }
         }
@@ -18938,33 +19000,6 @@
           }
         }
       },
-      "LoginHistory": {
-        "required": [
-          "loginAt",
-          "sourceIp",
-          "successful",
-          "userAgent"
-        ],
-        "type": "object",
-        "properties": {
-          "loginAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "sourceIp": {
-            "type": "string"
-          },
-          "successful": {
-            "type": "boolean"
-          },
-          "userAgent": {
-            "type": "string"
-          }
-        }
-      },
       "MarkSpecifiedRequest": {
         "type": "object",
         "properties": {
@@ -19352,14 +19387,11 @@
       "NavigationPostVo": {
         "type": "object",
         "properties": {
-          "current": {
-            "$ref": "#/components/schemas/PostVo"
-          },
           "next": {
-            "$ref": "#/components/schemas/PostVo"
+            "$ref": "#/components/schemas/ListedPostVo"
           },
           "previous": {
-            "$ref": "#/components/schemas/PostVo"
+            "$ref": "#/components/schemas/ListedPostVo"
           }
         },
         "description": "Post navigation vo to hold previous and next item."
@@ -19735,9 +19767,6 @@
           }
         },
         "description": "Comment owner info."
-      },
-      "Part": {
-        "type": "object"
       },
       "PasswordRequest": {
         "required": [
@@ -20482,6 +20511,7 @@
       },
       "PostRequest": {
         "required": [
+          "content",
           "post"
         ],
         "type": "object",
@@ -20587,12 +20617,12 @@
           },
           "visible": {
             "type": "string",
-            "default": "PUBLIC",
             "enum": [
               "PUBLIC",
               "INTERNAL",
               "PRIVATE"
-            ]
+            ],
+            "default": "PUBLIC"
           }
         }
       },
@@ -22363,12 +22393,12 @@
           },
           "visible": {
             "type": "string",
-            "default": "PUBLIC",
             "enum": [
               "PUBLIC",
               "INTERNAL",
               "PRIVATE"
-            ]
+            ],
+            "default": "PUBLIC"
           }
         }
       },
@@ -23410,39 +23440,6 @@
           }
         }
       },
-      "UcUploadRequest": {
-        "required": [
-          "file"
-        ],
-        "type": "object",
-        "properties": {
-          "file": {
-            "type": "string",
-            "format": "binary"
-          },
-          "formData": {
-            "type": "object",
-            "properties": {
-              "all": {
-                "type": "object",
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/Part"
-                },
-                "writeOnly": true
-              },
-              "empty": {
-                "type": "boolean"
-              }
-            },
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Part"
-              }
-            }
-          }
-        }
-      },
       "UpgradeFromUriRequest": {
         "required": [
           "uri"
@@ -23466,6 +23463,25 @@
             "format": "binary"
           }
         }
+      },
+      "UploadForm": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "The file to upload. If not provided, the url will be used.",
+            "format": "binary"
+          },
+          "filename": {
+            "type": "string",
+            "description": "The filename to use when uploading from url. If not provided, the filename will be\n extracted from the url."
+          },
+          "url": {
+            "type": "string",
+            "description": "The url to upload from. If not provided, the file will be used."
+          }
+        },
+        "description": "Upload form from console. The file and url are mutually exclusive. If both are provided,\n the file will be used."
       },
       "UploadFromUrlRequest": {
         "required": [
@@ -23844,16 +23860,6 @@
       "UserStatus": {
         "type": "object",
         "properties": {
-          "lastLoginAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "loginHistories": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LoginHistory"
-            }
-          },
           "permalink": {
             "type": "string"
           }

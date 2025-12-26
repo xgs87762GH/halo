@@ -6,18 +6,11 @@ import { useContentCache } from "@/composables/use-content-cache";
 import { useEditorExtensionPoints } from "@/composables/use-editor-extension-points";
 import { useSessionKeepAlive } from "@/composables/use-session-keep-alive";
 import { contentAnnotations } from "@/constants/annotations";
-import { FormType } from "@/types/slug";
-import { randomUUID } from "@/utils/id";
-import { usePermission } from "@/utils/permission";
 import { useContentSnapshot } from "@console/composables/use-content-snapshot";
 import { useSaveKeybinding } from "@console/composables/use-save-keybinding";
 import useSlugify from "@console/composables/use-slugify";
 import type { Post, PostRequest } from "@halo-dev/api-client";
-import {
-  consoleApiClient,
-  coreApiClient,
-  ucApiClient,
-} from "@halo-dev/api-client";
+import { consoleApiClient, coreApiClient } from "@halo-dev/api-client";
 import {
   Dialog,
   IconBookRead,
@@ -30,10 +23,12 @@ import {
   VButton,
   VPageHeader,
 } from "@halo-dev/components";
-import type { EditorProvider } from "@halo-dev/console-shared";
+import type { EditorProvider } from "@halo-dev/ui-shared";
+import { FormType, utils } from "@halo-dev/ui-shared";
 import { useLocalStorage } from "@vueuse/core";
 import { useRouteQuery } from "@vueuse/router";
 import type { AxiosRequestConfig } from "axios";
+import { isEqual } from "es-toolkit";
 import ShortUniqueId from "short-unique-id";
 import {
   computed,
@@ -41,6 +36,7 @@ import {
   onMounted,
   provide,
   ref,
+  shallowRef,
   toRef,
   watch,
   type ComputedRef,
@@ -55,11 +51,10 @@ const uid = new ShortUniqueId();
 const router = useRouter();
 const { t } = useI18n();
 const { mutateAsync: postUpdateMutate } = usePostUpdateMutate();
-const { currentUserHasPermission } = usePermission();
 
 // Editor providers
 const { editorProviders, fetchEditorProviders } = useEditorExtensionPoints();
-const currentEditorProvider = ref<EditorProvider>();
+const currentEditorProvider = shallowRef<EditorProvider>();
 const storedEditorProviderName = useLocalStorage("editor-provider-name", "");
 
 const handleChangeEditorProvider = async (provider: EditorProvider) => {
@@ -79,17 +74,8 @@ const handleChangeEditorProvider = async (provider: EditorProvider) => {
   }
 };
 
-// fixme: PostRequest type may be wrong
-interface PostRequestWithContent extends PostRequest {
-  content: {
-    raw: string;
-    content: string;
-    rawType: string;
-  };
-}
-
 // Post form
-const formState = ref<PostRequestWithContent>({
+const formState = ref<PostRequest>({
   post: {
     spec: {
       title: "",
@@ -114,7 +100,7 @@ const formState = ref<PostRequestWithContent>({
     apiVersion: "content.halo.run/v1alpha1",
     kind: "Post",
     metadata: {
-      name: randomUUID(),
+      name: utils.id.uuid(),
       annotations: {},
     },
   },
@@ -128,11 +114,14 @@ const settingModal = ref(false);
 const saving = ref(false);
 const publishing = ref(false);
 
-const isTitleChanged = ref(false);
+const needsUpdatePost = ref(false);
 watch(
-  () => formState.value.post.spec.title,
-  (newValue, oldValue) => {
-    isTitleChanged.value = newValue !== oldValue;
+  [
+    () => formState.value.post.spec.title,
+    () => formState.value.post.spec.cover,
+  ],
+  (value, oldValue) => {
+    needsUpdatePost.value = !isEqual(value, oldValue);
   }
 );
 
@@ -181,8 +170,7 @@ const handleSave = async (options?: { mute?: boolean }) => {
     }
 
     if (isUpdateMode.value) {
-      // Save post title
-      if (isTitleChanged.value) {
+      if (needsUpdatePost.value) {
         formState.value.post = (
           await postUpdateMutate(formState.value.post)
         ).data;
@@ -195,7 +183,7 @@ const handleSave = async (options?: { mute?: boolean }) => {
 
       formState.value.post = data;
 
-      isTitleChanged.value = false;
+      needsUpdatePost.value = false;
     } else {
       // Clear new post content cache
       handleClearCache();
@@ -246,7 +234,7 @@ const handlePublish = async () => {
       const { name: postName } = formState.value.post.metadata;
       const { permalink } = formState.value.post.status || {};
 
-      if (isTitleChanged.value) {
+      if (needsUpdatePost.value) {
         formState.value.post = (
           await postUpdateMutate(formState.value.post)
         ).data;
@@ -366,26 +354,7 @@ const handleFetchContent = async () => {
 };
 
 const handleOpenSettingModal = async () => {
-  if (isTitleChanged.value) {
-    await coreApiClient.content.post.patchPost({
-      name: formState.value.post.metadata.name,
-      jsonPatchInner: [
-        {
-          op: "add",
-          path: "/spec/title",
-          value:
-            formState.value.post.spec.title || t("core.post_editor.untitled"),
-        },
-      ],
-    });
-    isTitleChanged.value = false;
-  }
-
-  const { data: latestPost } = await coreApiClient.content.post.getPost({
-    name: formState.value.post.metadata.name,
-  });
-  formState.value.post = latestPost;
-
+  await handleSave({ mute: true });
   settingModal.value = true;
 };
 
@@ -486,18 +455,17 @@ useSessionKeepAlive();
 
 // Upload image
 async function handleUploadImage(file: File, options?: AxiosRequestConfig) {
-  if (!currentUserHasPermission(["uc:attachments:manage"])) {
+  if (!utils.permission.has(["system:attachments:manage"])) {
     return;
   }
 
-  const { data } = await ucApiClient.storage.attachment.createAttachmentForPost(
-    {
-      file,
-      postName: formState.value.post.metadata.name,
-      waitForPermalink: true,
-    },
-    options
-  );
+  const { data } =
+    await consoleApiClient.storage.attachment.uploadAttachmentForConsole(
+      {
+        file,
+      },
+      options
+    );
   return data;
 }
 </script>
@@ -589,8 +557,9 @@ async function handleUploadImage(file: File, options?: AxiosRequestConfig) {
       v-model:raw="formState.content.raw"
       v-model:content="formState.content.content"
       v-model:title="formState.post.spec.title"
+      v-model:cover="formState.post.spec.cover"
       :upload-image="handleUploadImage"
-      class="h-full"
+      class="size-full"
       @update="handleSetContentCache"
     />
   </div>

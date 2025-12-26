@@ -34,7 +34,7 @@ import run.halo.app.content.PostService;
 import run.halo.app.core.extension.content.Post;
 import run.halo.app.extension.MetadataUtil;
 import run.halo.app.extension.ReactiveExtensionClient;
-import run.halo.app.extension.index.query.QueryFactory;
+import run.halo.app.extension.index.query.Queries;
 import run.halo.app.infra.exception.NotFoundException;
 import run.halo.app.infra.utils.JsonUtils;
 import run.halo.app.theme.DefaultTemplateEnum;
@@ -71,8 +71,7 @@ public class PostRouteFactory implements RouteFactory {
 
     @Override
     public RouterFunction<ServerResponse> create(String pattern) {
-        PatternParser postParamPredicate =
-            new PatternParser(pattern);
+        var postParamPredicate = new PatternParser(pattern);
         if (postParamPredicate.isQueryParamPattern()) {
             RequestPredicate requestPredicate = postParamPredicate.toRequestPredicate();
             return RouterFunctions.route(GET("/")
@@ -196,7 +195,7 @@ public class PostRouteFactory implements RouteFactory {
         return queryPostPredicateResolver.getListOptions()
             .flatMapMany(listOptions -> {
                 if (isNotBlank(slug)) {
-                    var other = QueryFactory.equal("spec.slug", slug);
+                    var other = Queries.equal("spec.slug", slug);
                     listOptions.setFieldSelector(listOptions.getFieldSelector().andQuery(other));
                 }
                 return client.listAll(Post.class, listOptions, Sort.unsorted());

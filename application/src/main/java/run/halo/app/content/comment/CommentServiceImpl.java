@@ -1,8 +1,8 @@
 package run.halo.app.content.comment;
 
-import static run.halo.app.extension.index.query.QueryFactory.and;
-import static run.halo.app.extension.index.query.QueryFactory.equal;
-import static run.halo.app.extension.index.query.QueryFactory.isNull;
+import static run.halo.app.extension.index.query.Queries.and;
+import static run.halo.app.extension.index.query.Queries.equal;
+import static run.halo.app.extension.index.query.Queries.isNull;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -29,7 +29,7 @@ import run.halo.app.extension.PageRequestImpl;
 import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.Ref;
 import run.halo.app.extension.router.selector.FieldSelector;
-import run.halo.app.infra.SystemConfigurableEnvironmentFetcher;
+import run.halo.app.infra.SystemConfigFetcher;
 import run.halo.app.infra.exception.AccessDeniedException;
 import run.halo.app.plugin.extensionpoint.ExtensionGetter;
 
@@ -43,11 +43,11 @@ import run.halo.app.plugin.extensionpoint.ExtensionGetter;
 public class CommentServiceImpl extends AbstractCommentService implements CommentService {
 
     private final ExtensionGetter extensionGetter;
-    private final SystemConfigurableEnvironmentFetcher environmentFetcher;
+    private final SystemConfigFetcher environmentFetcher;
 
     public CommentServiceImpl(RoleService roleService, ReactiveExtensionClient client,
         UserService userService, CounterService counterService, ExtensionGetter extensionGetter,
-        SystemConfigurableEnvironmentFetcher environmentFetcher) {
+        SystemConfigFetcher environmentFetcher) {
         super(roleService, client, userService, counterService);
         this.extensionGetter = extensionGetter;
         this.environmentFetcher = environmentFetcher;
@@ -176,8 +176,10 @@ public class CommentServiceImpl extends AbstractCommentService implements Commen
     Mono<ListResult<Comment>> listCommentsByRef(Ref subjectRef, PageRequest pageRequest) {
         var listOptions = new ListOptions();
         listOptions.setFieldSelector(FieldSelector.of(
-            and(equal("spec.subjectRef", Comment.toSubjectRefKey(subjectRef)),
-                isNull("metadata.deletionTimestamp"))
+            and(
+                equal("spec.subjectRef", Comment.toSubjectRefKey(subjectRef)),
+                isNull("metadata.deletionTimestamp")
+            )
         ));
         return client.listBy(Comment.class, listOptions, pageRequest);
     }

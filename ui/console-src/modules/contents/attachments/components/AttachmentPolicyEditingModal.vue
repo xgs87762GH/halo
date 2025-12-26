@@ -1,15 +1,18 @@
 <script lang="ts" setup>
 import SubmitButton from "@/components/button/SubmitButton.vue";
+import { attachmentPolicyLabels } from "@/constants/labels";
 import { setFocus } from "@/formkit/utils/focus";
 import type { FormKitSchemaCondition, FormKitSchemaNode } from "@formkit/core";
-import type { Policy } from "@halo-dev/api-client";
+import type { JsonPatchInner, Policy } from "@halo-dev/api-client";
 import { consoleApiClient, coreApiClient } from "@halo-dev/api-client";
 import { Toast, VButton, VLoading, VModal, VSpace } from "@halo-dev/components";
-import { useQuery } from "@tanstack/vue-query";
+import { useQuery, useQueryClient } from "@tanstack/vue-query";
 import { computed, onMounted, ref, toRaw, toRefs } from "vue";
 import { useI18n } from "vue-i18n";
 
 const CONFIG_MAP_GROUP = "default";
+
+const queryClient = useQueryClient();
 
 const props = withDefaults(
   defineProps<{
@@ -112,9 +115,10 @@ const isSubmitting = ref(false);
 
 const handleSave = async (data: {
   displayName: string;
-  [key: string]: unknown;
+  hidden: string;
+  priority: string;
+  config: Record<string, unknown>;
 }) => {
-  console.log(data);
   try {
     isSubmitting.value = true;
     if (isUpdateMode.value) {
@@ -125,18 +129,42 @@ const handleSave = async (data: {
       await consoleApiClient.storage.policy.updatePolicyConfigByGroup({
         name: policy.value.metadata.name,
         group: CONFIG_MAP_GROUP,
-        body: data,
+        body: data.config,
       });
 
-      await coreApiClient.storage.policy.updatePolicy({
-        name: policy.value.metadata.name,
-        policy: {
-          ...policy.value,
-          spec: {
-            ...policy.value.spec,
-            displayName: data.displayName,
-          },
+      const jsonPatchInner: JsonPatchInner[] = [
+        {
+          op: "add",
+          path: "/spec/displayName",
+          value: data.displayName,
         },
+      ];
+
+      if (policy.value.metadata.labels) {
+        jsonPatchInner.push({
+          op: "add",
+          path: `/metadata/labels/${attachmentPolicyLabels.HIDDEN_WITH_JSON_PATCH}`,
+          value: data.hidden,
+        });
+        jsonPatchInner.push({
+          op: "add",
+          path: `/metadata/labels/${attachmentPolicyLabels.PRIORITY_WITH_JSON_PATCH}`,
+          value: data.priority || "0",
+        });
+      } else {
+        jsonPatchInner.push({
+          op: "add",
+          path: `/metadata/labels`,
+          value: {
+            [attachmentPolicyLabels.HIDDEN]: data.hidden,
+            [attachmentPolicyLabels.PRIORITY]: data.priority || "0",
+          },
+        });
+      }
+
+      await coreApiClient.storage.policy.patchPolicy({
+        name: policy.value.metadata.name,
+        jsonPatchInner: jsonPatchInner,
       });
     } else {
       const { data: policies } =
@@ -157,7 +185,7 @@ const handleSave = async (data: {
         await coreApiClient.configMap.createConfigMap({
           configMap: {
             data: {
-              [CONFIG_MAP_GROUP]: JSON.stringify(data),
+              [CONFIG_MAP_GROUP]: JSON.stringify(data.config || {}),
             },
             apiVersion: "v1alpha1",
             kind: "ConfigMap",
@@ -180,6 +208,9 @@ const handleSave = async (data: {
           metadata: {
             name: "",
             generateName: "attachment-policy-",
+            labels: {
+              [attachmentPolicyLabels.HIDDEN]: data.hidden,
+            },
           },
         },
       });
@@ -191,6 +222,7 @@ const handleSave = async (data: {
     console.error("Failed to save attachment policy", e);
   } finally {
     isSubmitting.value = false;
+    queryClient.invalidateQueries({ queryKey: ["attachment-policies"] });
   }
 };
 
@@ -207,16 +239,15 @@ const modalTitle = props.policy
     ref="modal"
     mount-to-body
     :title="modalTitle"
-    :width="600"
+    :width="650"
     @close="emit('close')"
   >
     <div>
       <VLoading v-if="isLoading" />
       <template v-else>
         <FormKit
-          v-if="formSchema && configMapGroupData"
           id="attachment-policy-form"
-          :value="toRaw(configMapGroupData) || {}"
+          v-slot="{ value }"
           name="attachment-policy-form"
           :preserve="true"
           type="form"
@@ -235,10 +266,48 @@ const modalTitle = props.policy
             name="displayName"
             validation="required|length:0,50"
           ></FormKit>
-          <FormKitSchema
-            :schema="toRaw(formSchema)"
-            :data="toRaw(configMapGroupData) || {}"
-          />
+          <FormKit
+            name="hidden"
+            :value="
+              policy?.metadata.labels?.[attachmentPolicyLabels.HIDDEN] ||
+              'false'
+            "
+            type="checkbox"
+            :label="
+              $t('core.attachment.policy_editing_modal.fields.hidden.label')
+            "
+            :help="
+              $t('core.attachment.policy_editing_modal.fields.hidden.help')
+            "
+            on-value="true"
+            off-value="false"
+          ></FormKit>
+          <FormKit
+            v-if="value?.hidden === 'false'"
+            name="priority"
+            :value="policy?.metadata.labels?.[attachmentPolicyLabels.PRIORITY]"
+            type="number"
+            :label="
+              $t('core.attachment.policy_editing_modal.fields.priority.label')
+            "
+            :help="
+              $t('core.attachment.policy_editing_modal.fields.priority.help')
+            "
+          ></FormKit>
+          <FormKit
+            v-if="formSchema && configMapGroupData"
+            :value="toRaw(configMapGroupData) || {}"
+            type="group"
+            name="config"
+            :label="
+              $t('core.attachment.policy_editing_modal.fields.config.label')
+            "
+          >
+            <FormKitSchema
+              :schema="toRaw(formSchema)"
+              :data="toRaw(configMapGroupData) || {}"
+            />
+          </FormKit>
         </FormKit>
       </template>
     </div>

@@ -2,6 +2,9 @@ package run.halo.app.theme.router.factories;
 
 import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
 import static org.springframework.web.reactive.function.server.RequestPredicates.accept;
+import static run.halo.app.extension.index.query.Queries.and;
+import static run.halo.app.extension.index.query.Queries.equal;
+import static run.halo.app.extension.index.query.Queries.isNull;
 import static run.halo.app.theme.router.PageUrlUtils.totalPage;
 
 import java.util.Map;
@@ -19,9 +22,8 @@ import run.halo.app.extension.ListOptions;
 import run.halo.app.extension.ListResult;
 import run.halo.app.extension.PageRequestImpl;
 import run.halo.app.extension.ReactiveExtensionClient;
-import run.halo.app.extension.index.query.QueryFactory;
 import run.halo.app.extension.router.selector.FieldSelector;
-import run.halo.app.infra.SystemConfigurableEnvironmentFetcher;
+import run.halo.app.infra.SystemConfigFetcher;
 import run.halo.app.infra.SystemSetting;
 import run.halo.app.infra.exception.NotFoundException;
 import run.halo.app.infra.utils.PathUtils;
@@ -46,7 +48,7 @@ import run.halo.app.theme.router.UrlContextListResult;
 public class TagPostRouteFactory implements RouteFactory {
 
     private final ReactiveExtensionClient client;
-    private final SystemConfigurableEnvironmentFetcher environmentFetcher;
+    private final SystemConfigFetcher environmentFetcher;
     private final TagFinder tagFinder;
     private final PostFinder postFinder;
 
@@ -102,8 +104,9 @@ public class TagPostRouteFactory implements RouteFactory {
     private Mono<TagVo> tagBySlug(String slug) {
         var listOptions = new ListOptions();
         listOptions.setFieldSelector(FieldSelector.of(
-            QueryFactory.and(QueryFactory.equal("spec.slug", slug),
-                QueryFactory.isNull("metadata.deletionTimestamp")
+            and(
+                equal("spec.slug", slug),
+                isNull("metadata.deletionTimestamp")
             )
         ));
         return client.listBy(Tag.class, listOptions, PageRequestImpl.ofSize(1))

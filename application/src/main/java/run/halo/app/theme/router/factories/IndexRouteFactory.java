@@ -15,7 +15,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.i18n.LocaleContextResolver;
 import reactor.core.publisher.Mono;
-import run.halo.app.infra.SystemConfigurableEnvironmentFetcher;
+import run.halo.app.infra.SystemConfigFetcher;
 import run.halo.app.infra.SystemSetting;
 import run.halo.app.theme.DefaultTemplateEnum;
 import run.halo.app.theme.finders.PostFinder;
@@ -37,7 +37,7 @@ import run.halo.app.theme.router.UrlContextListResult;
 public class IndexRouteFactory implements RouteFactory {
 
     private final PostFinder postFinder;
-    private final SystemConfigurableEnvironmentFetcher environmentFetcher;
+    private final SystemConfigFetcher environmentFetcher;
     private final TitleVisibilityIdentifyCalculator titleVisibilityIdentifyCalculator;
     private final LocaleContextResolver localeContextResolver;
 

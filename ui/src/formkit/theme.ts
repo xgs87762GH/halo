@@ -44,9 +44,13 @@ const theme: Record<string, Record<string, string>> = {
   button: buttonClassification,
   color: {
     ...textClassification,
-    inner: "",
+    inner: "inline-flex items-center gap-1",
     input:
-      "w-16 h-8 appearance-none cursor-pointer border border-gray-300 rounded-md mb-2 p-1",
+      "w-16 h-8 appearance-none cursor-pointer border border-gray-300 rounded-md p-1",
+  },
+  iconify: {
+    ...textClassification,
+    inner: "inline-flex items-center gap-1",
   },
   file: {
     ...textClassification,
@@ -57,6 +61,10 @@ const theme: Record<string, Record<string, string>> = {
   checkbox: {
     ...boxClassification,
     wrapper: "flex items-center mb-1 cursor-pointer",
+  },
+  switch: {
+    ...boxClassification,
+    wrapper: "flex items-center mb-1 gap-2 cursor-pointer",
   },
   radio: {
     ...boxClassification,
@@ -104,6 +112,16 @@ const theme: Record<string, Record<string, string>> = {
       "flex flex-col items-center justify-center gap-1.5 py-2 bg-gray-200 col-span-1 flex items-center justify-center",
     control:
       "cursor-pointer text-gray-500 transition-all hover:text-primary disabled:!cursor-not-allowed disabled:opacity-50 disabled:hover:!text-gray-500",
+  },
+  array: {
+    label: textClassification.label,
+    wrapper: "flex flex-col gap-0",
+    help: "!mt-1",
+  },
+  attachment: {
+    label: textClassification.label,
+    inner: "inline-flex w-full",
+    wrapper: "flex flex-col gap-4 w-full",
   },
   list: {
     label: textClassification.label,

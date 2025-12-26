@@ -1,11 +1,9 @@
 <script lang="ts" setup>
-import HasPermission from "@/components/permission/HasPermission.vue";
-import { FormType } from "@/types/slug";
-import { formatDatetime, toISOString } from "@/utils/date";
 import useSlugify from "@console/composables/use-slugify";
 import type { FormKitNode } from "@formkit/core";
 import { publicApiClient } from "@halo-dev/api-client";
 import { IconRefreshLine } from "@halo-dev/components";
+import { FormType, utils } from "@halo-dev/ui-shared";
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { PostFormState } from "../types";
@@ -48,7 +46,9 @@ const emit = defineEmits<{
 function onSubmit(data: PostFormState) {
   emit("submit", {
     ...data,
-    publishTime: data.publishTime ? toISOString(data.publishTime) : undefined,
+    publishTime: data.publishTime
+      ? utils.date.toISOString(data.publishTime)
+      : undefined,
   });
 }
 
@@ -97,7 +97,7 @@ const isScheduledPublish = computed(() => {
 const publishTimeHelp = computed(() => {
   return isScheduledPublish.value
     ? t("core.post.settings.fields.publish_time.help.schedule_publish", {
-        datetime: formatDatetime(internalFormState.value.publishTime),
+        datetime: utils.date.format(internalFormState.value.publishTime),
       })
     : "";
 });
@@ -127,13 +127,13 @@ const publishTimeHelp = computed(() => {
             :label="$t('core.post.settings.fields.title.label')"
             type="text"
             name="title"
-            validation="required|length:0,100"
+            validation="required|length:0,1024"
           ></FormKit>
           <FormKit
             :label="$t('core.post.settings.fields.slug.label')"
             name="slug"
             type="text"
-            validation="required|length:0,100|slugUniqueValidation"
+            validation="required|length:0,1024|slugUniqueValidation"
             :validation-rules="{ slugUniqueValidation }"
             :validation-messages="{
               slugUniqueValidation: $t(
@@ -182,6 +182,19 @@ const publishTimeHelp = computed(() => {
             :max-auto-height="200"
             validation="length:0,1024"
           ></FormKit>
+          <HasPermission
+            :permissions="['system:attachments:view', 'uc:attachments:manage']"
+          >
+            <FormKit
+              name="cover"
+              :label="$t('core.post.settings.fields.cover.label')"
+              type="attachment"
+              width="50%"
+              aspect-ratio="16/9"
+              :accepts="['image/*']"
+              validation="length:0,1024"
+            ></FormKit>
+          </HasPermission>
         </div>
       </div>
 
@@ -228,17 +241,6 @@ const publishTimeHelp = computed(() => {
             max="9999-12-31T23:59"
             :help="publishTimeHelp"
           ></FormKit>
-          <HasPermission
-            :permissions="['system:attachments:view', 'uc:attachments:manage']"
-          >
-            <FormKit
-              name="cover"
-              :label="$t('core.post.settings.fields.cover.label')"
-              type="attachment"
-              :accepts="['image/*']"
-              validation="length:0,1024"
-            ></FormKit>
-          </HasPermission>
         </div>
       </div>
     </div>

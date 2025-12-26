@@ -4,7 +4,7 @@ import static run.halo.app.extension.ExtensionUtil.addFinalizers;
 import static run.halo.app.extension.ExtensionUtil.removeFinalizers;
 import static run.halo.app.extension.MetadataUtil.nullSafeAnnotations;
 
-import java.util.Map;
+import java.time.Duration;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -23,7 +23,8 @@ import run.halo.app.extension.ListOptions;
 import run.halo.app.extension.controller.Controller;
 import run.halo.app.extension.controller.ControllerBuilder;
 import run.halo.app.extension.controller.Reconciler;
-import run.halo.app.extension.index.query.QueryFactory;
+import run.halo.app.extension.index.query.Queries;
+import run.halo.app.infra.utils.ReactiveUtils;
 
 /**
  * Reconciler for {@link Category}.
@@ -34,6 +35,9 @@ import run.halo.app.extension.index.query.QueryFactory;
 @Component
 @AllArgsConstructor
 public class CategoryReconciler implements Reconciler<Reconciler.Request> {
+
+    private static final Duration BLOCKING_TIMEOUT = ReactiveUtils.DEFAULT_TIMEOUT;
+
     static final String FINALIZER_NAME = "category-protection";
     private final ExtensionClient client;
     private final CategoryPermalinkPolicy categoryPermalinkPolicy;
@@ -65,7 +69,7 @@ public class CategoryReconciler implements Reconciler<Reconciler.Request> {
 
     private void checkHiddenState(Category category) {
         final boolean hidden = categoryService.isCategoryHidden(category.getMetadata().getName())
-            .blockOptional()
+            .blockOptional(BLOCKING_TIMEOUT)
             .orElse(false);
         refreshHiddenState(category, hidden);
     }
@@ -114,9 +118,11 @@ public class CategoryReconciler implements Reconciler<Reconciler.Request> {
     }
 
     void populatePermalinkPattern(Category category) {
-        Map<String, String> annotations = nullSafeAnnotations(category);
-        String newPattern = categoryPermalinkPolicy.pattern();
-        annotations.put(Constant.PERMALINK_PATTERN_ANNO, newPattern);
+        var annotations = nullSafeAnnotations(category);
+        if (!annotations.containsKey(Constant.PERMALINK_PATTERN_ANNO)) {
+            var newPattern = categoryPermalinkPolicy.pattern();
+            annotations.put(Constant.PERMALINK_PATTERN_ANNO, newPattern);
+        }
     }
 
     void populatePermalink(Category category) {
@@ -126,7 +132,7 @@ public class CategoryReconciler implements Reconciler<Reconciler.Request> {
 
     private void updateCategoryForPost(String categoryName) {
         var posts = client.listAll(Post.class, ListOptions.builder()
-            .fieldQuery(QueryFactory.equal("spec.categories", categoryName))
+            .fieldQuery(Queries.equal("spec.categories", categoryName))
             .build(), Sort.by("metadata.creationTimestamp", "metadata.name")
         );
         for (Post post : posts) {
