@@ -1,3 +1,12 @@
 plugins {
     id 'groovy-gradle-plugin'
 }
+
+subprojects {
+    afterEvaluate {
+        tasks.withType(JavaCompile).configureEach {
+            println "Before: " + options.compilerArgs
+            options.compilerArgs += ["-Xlint:-removal"]
+        }
+    }
+}
