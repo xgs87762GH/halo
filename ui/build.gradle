@@ -28,8 +28,6 @@ tasks.register('doClean', Delete) {
   }
 }
 
-
-
 tasks.named('assemble') {
   dependsOn tasks.named('doBuild')
 }
